@@ -1,25 +1,50 @@
-import React, {useMemo, useReducer} from 'react'
+import React, {useMemo, useReducer, useEffect} from 'react'
 import { NavigationContainer } from '@react-navigation/native'
 import {createStackNavigator} from '@react-navigation/stack'
-import MealsScreen from './screens/Meals'
-import ModalScreen from './screens/Modal' 
-import LoginScreen from './screens/Login'
-import RegisterScreen from './screens/Register' 
-import AuthContext from './context/AuthContext'
-
+import MealsScreen from './src/screens/Meals'
+import ModalScreen from './src/screens/Modal' 
+import LoginScreen from './src/screens/Login'
+import RegisterScreen from './src/screens/Register' 
+import AuthContext from './src/context/AuthContext'
+import { userToken, setUserToken } from './src/utilities/storage'
 
 export default () => {
 const MainStack = createStackNavigator();
 const RootStack = createStackNavigator();
-const isAutenticated = false;
 
 const [state, dispatch] = useReducer((prevState, action) => {
+  switch (action.type) {
+    case 'RESTORE_TOKEN':
+      return {
+        ...prevState,
+        userToken: action.token,
+        isLoading: false
+      }
 
+    case 'SIGN_IN':
+      return {
+        ...prevState,
+        userToken: action.token,
+        isLoading: false
+      }
+  }
+},{
+  isLoading: true,
+  isSignout: false,
+  userToken: null,
 })
 
+useEffect( () => {
+  userToken()
+    .then(token => {
+      dispatch({ type: 'RESTORE_TOKEN', token: token })
+    })
+}, [])
+
 const authContext = useMemo(() => ({
-  signIn: async data => {
-    
+  signIn: token => {
+    setUserToken(token)
+    dispatch({ type: 'SIGN_IN', token });
   }
 }), [])
 
@@ -41,7 +66,7 @@ const RootStackScreen = () => (
     <RootStack.Navigator mode="modal" >
       <RootStack.Screen
         name="Main"
-        component={ isAutenticated ? MainStackScreen : AuthStackScreen}
+        component={ state.userToken === null ? AuthStackScreen : MainStackScreen } 
         options={{ headerShown: false }}
       />
       <RootStack.Screen name="Modal" component={ModalScreen} />
@@ -49,7 +74,6 @@ const RootStackScreen = () => (
   </AuthContext.Provider>
 )
 
- 
   return (
     <NavigationContainer>
           {RootStackScreen()}
